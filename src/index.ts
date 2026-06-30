@@ -46,7 +46,7 @@ export {
   type ScrubbedSample,
   type FailureOracle,
 } from './failure/index.js';
-export { readLines, toChunks, type Line } from './line-reader.js';
+export { readLines, toChunks, type Line, type ByteSource } from './line-reader.js';
 export {
   decodeBase64,
   decodeQuotedPrintable,

@@ -7,8 +7,22 @@
 
 /** Decode a base64 body. Tolerant: strips whitespace and stray non-alphabet bytes. */
 export function decodeBase64(raw: Uint8Array): Uint8Array {
-  const s = bytesToLatin1(raw).replace(/[^A-Za-z0-9+/=]/g, '');
-  return Uint8Array.from(Buffer.from(s, 'base64'));
+  return base64ToBytes(bytesToLatin1(raw));
+}
+
+/** Portable base64 → bytes (atob, no Buffer). Tolerant of missing padding + stray characters. */
+export function base64ToBytes(s: string): Uint8Array {
+  let clean = s.replace(/[^A-Za-z0-9+/]/g, '');
+  while (clean.length % 4) clean += '=';
+  let bin: string;
+  try {
+    bin = atob(clean);
+  } catch {
+    return new Uint8Array(0);
+  }
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 /** Decode a quoted-printable body (RFC 2045 §6.7): `=XX` hex escapes + `=` soft line breaks. */
@@ -70,8 +84,14 @@ export function decodeCharset(
   }
 }
 
-/** Interpret raw bytes as latin1 (1:1 byte→codepoint) — used for ASCII-ish header/structure scanning. */
+/** Interpret raw bytes as latin1 (exact 1:1 byte→codepoint, ISO-8859-1) — header/structure scanning.
+ * Portable (no Buffer); note TextDecoder('latin1') is actually windows-1252, so we map by hand.
+ * Chunked to stay under the argument-count limit of String.fromCharCode. */
 export function bytesToLatin1(bytes: Uint8Array): string {
-  // Buffer.from(view) copies; toString('latin1') is exact and fast.
-  return Buffer.from(bytes).toString('latin1');
+  let out = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    out += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return out;
 }

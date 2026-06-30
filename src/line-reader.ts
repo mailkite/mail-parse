@@ -16,16 +16,37 @@ export interface Line {
 const LF = 0x0a;
 const CR = 0x0d;
 
-/** Normalize any input form into an async iterable of byte chunks. */
-export async function* toChunks(
-  source: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | string,
-): AsyncGenerator<Uint8Array> {
+/** Any byte source the parser accepts — a buffer, a string, an (async) iterable, or a Web stream. */
+export type ByteSource =
+  | AsyncIterable<Uint8Array>
+  | Iterable<Uint8Array>
+  | ReadableStream<Uint8Array>
+  | Uint8Array
+  | string;
+
+/** Normalize any input form into an async iterable of byte chunks. Runtime-agnostic (Node + Workers). */
+export async function* toChunks(source: ByteSource): AsyncGenerator<Uint8Array> {
   if (typeof source === 'string') {
     yield new TextEncoder().encode(source);
     return;
   }
   if (source instanceof Uint8Array) {
     yield source;
+    return;
+  }
+  // Web ReadableStream — pump via a reader. Checked BEFORE asyncIterator because Workers'
+  // ReadableStream is not (yet) async-iterable; Node's is, but the reader path works on both.
+  if (typeof (source as ReadableStream<Uint8Array>).getReader === 'function') {
+    const reader = (source as ReadableStream<Uint8Array>).getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) yield value;
+      }
+    } finally {
+      reader.releaseLock();
+    }
     return;
   }
   if (Symbol.asyncIterator in source) {
@@ -43,9 +64,7 @@ function asBytes(c: Uint8Array | string): Uint8Array {
  * Yield lines from a chunk stream. Splits on LF; strips a preceding CR. Only a partial trailing
  * line is buffered between chunks, so memory stays O(longest line), not O(message).
  */
-export async function* readLines(
-  source: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | string,
-): AsyncGenerator<Line> {
+export async function* readLines(source: ByteSource): AsyncGenerator<Line> {
   let rem: Uint8Array = new Uint8Array(0);
   for await (const chunk of toChunks(source)) {
     const buf: Uint8Array = concat(rem, chunk);

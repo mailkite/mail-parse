@@ -144,7 +144,11 @@ function rebuild(content: Uint8Array, eol: Uint8Array): Uint8Array {
 }
 
 function latin1(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('latin1');
+  // Exact 1:1 byte→codepoint, portable (no Buffer); chunked for the fromCharCode arg limit.
+  let out = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) out += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  return out;
 }
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {

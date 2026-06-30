@@ -7,12 +7,14 @@
 // stream each part's onBody chunks to a sink (R2) instead of buffering — see Phase 1 follow-ups.
 
 import { decodeCharset, decodeTransfer } from './decode.js';
+import { unflowFormat } from './flowed.js';
 import {
   decodeEncodedWords,
   getHeader,
   parseAddressList,
   parseSingleAddress,
 } from './headers.js';
+import type { ByteSource } from './line-reader.js';
 import { Part, Registry, toRegistry, type Middleware } from './middleware.js';
 import { splitMime } from './splitter.js';
 import type { TraceHook } from './trace.js';
@@ -40,10 +42,7 @@ interface Acc {
 }
 
 /** Parse a raw MIME message into a typed Message. Never throws on malformed input — collects diagnostics. */
-export async function parse(
-  source: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | string,
-  options: ParseOptions = {},
-): Promise<Message> {
+export async function parse(source: ByteSource, options: ParseOptions = {}): Promise<Message> {
   let rootHeaders: Header[] | null = null;
   const leaves: LeafCollector[] = [];
   const open = new Map<PartMeta, LeafCollector>();
@@ -149,7 +148,7 @@ function classify(meta: PartMeta, body: Uint8Array, acc: Acc): void {
       });
     }
     if (meta.contentType === 'text/html') acc.html = (acc.html ?? '') + str;
-    else acc.text = (acc.text ?? '') + str;
+    else acc.text = (acc.text ?? '') + (meta.format === 'flowed' ? unflowFormat(str, meta.delsp) : str);
   } else {
     acc.attachments.push(toAttachment(meta, body));
   }

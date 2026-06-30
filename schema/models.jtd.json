@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "description": "SSOT for @mailkite/mail-parse JSON-facing models (RFC 8927 JSON Type Definition). Generate typed models per language with `npm run gen`. In-memory-only types that carry binary (e.g. attachment bytes as Uint8Array) are NOT modeled here — JTD models the JSON contract."
+  },
+  "definitions": {
+    "DiagnosticScope": { "enum": ["envelope", "structure", "part"] },
+    "Severity": { "enum": ["warn", "error"] },
+    "Disposition": { "enum": ["attachment", "inline"] },
+
+    "Address": {
+      "properties": { "address": { "type": "string" } },
+      "optionalProperties": { "name": { "type": "string" } }
+    },
+    "Header": {
+      "properties": { "key": { "type": "string" }, "value": { "type": "string" } }
+    },
+    "Diagnostic": {
+      "properties": {
+        "code": { "type": "string" },
+        "severity": { "ref": "Severity" },
+        "scope": { "ref": "DiagnosticScope" }
+      },
+      "optionalProperties": {
+        "detail": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    },
+    "AttachmentMeta": {
+      "properties": {
+        "filename": { "type": "string", "nullable": true },
+        "mimeType": { "type": "string" },
+        "disposition": { "ref": "Disposition", "nullable": true },
+        "contentId": { "type": "string", "nullable": true },
+        "size": { "type": "uint32" }
+      }
+    },
+    "ParsedMessage": {
+      "properties": {
+        "headers": { "elements": { "ref": "Header" } },
+        "to": { "elements": { "ref": "Address" } },
+        "cc": { "elements": { "ref": "Address" } },
+        "bcc": { "elements": { "ref": "Address" } },
+        "replyTo": { "elements": { "ref": "Address" } },
+        "subject": { "type": "string", "nullable": true },
+        "messageId": { "type": "string", "nullable": true },
+        "inReplyTo": { "type": "string", "nullable": true },
+        "date": { "type": "string", "nullable": true },
+        "text": { "type": "string", "nullable": true },
+        "html": { "type": "string", "nullable": true },
+        "attachments": { "elements": { "ref": "AttachmentMeta" } },
+        "diagnostics": { "elements": { "ref": "Diagnostic" } },
+        "annotations": { "values": {} }
+      },
+      "optionalProperties": {
+        "from": { "ref": "Address" }
+      }
+    },
+
+    "SignatureLevel": { "enum": ["scope", "contentType", "byteSignature", "mailer"] },
+    "SignatureRollup": {
+      "properties": {
+        "level": { "ref": "SignatureLevel" },
+        "hash": { "type": "string" }
+      }
+    },
+    "FailureFeatures": {
+      "properties": {
+        "libVersion": { "type": "string" },
+        "scope": { "ref": "DiagnosticScope" },
+        "diagnosticCodes": { "elements": { "type": "string" } }
+      },
+      "optionalProperties": {
+        "contentType": { "type": "string" },
+        "disposition": { "type": "string" },
+        "transferEncoding": { "type": "string" },
+        "byteSignature": { "type": "string" },
+        "headerNames": { "elements": { "type": "string" } },
+        "mailerFamily": { "type": "string" },
+        "structurePath": { "type": "string" }
+      }
+    },
+    "FailureSignature": {
+      "properties": {
+        "hash": { "type": "string" },
+        "features": { "ref": "FailureFeatures" },
+        "rollup": { "elements": { "ref": "SignatureRollup" } }
+      }
+    }
+  }
+}

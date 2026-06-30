@@ -13,7 +13,7 @@ import {
   parseHeaderBlock,
   parseStructuredField,
 } from './headers.js';
-import { readLines, type Line } from './line-reader.js';
+import { readLines, type ByteSource, type Line } from './line-reader.js';
 import type { Diagnostic, Header, PartMeta } from './types.js';
 
 export interface SplitHandlers {
@@ -37,10 +37,7 @@ interface MultipartCtx {
 const DASH = 0x2d;
 
 /** Drive the state machine over a byte source, emitting node events to `handlers`. */
-export async function splitMime(
-  source: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | string,
-  handlers: SplitHandlers,
-): Promise<void> {
+export async function splitMime(source: ByteSource, handlers: SplitHandlers): Promise<void> {
   const stack: MultipartCtx[] = [];
   let mode: 'headers' | 'body' | 'scan' = 'headers';
   let headerLines: Line[] = [];
@@ -194,6 +191,8 @@ function computeMeta(headerLines: Line[], depth: number, parentPath: string): Pa
 
   const cid = getHeader(headers, 'content-id')?.replace(/^<|>$/g, '');
   const charset = ct.params['charset'];
+  const format = ct.params['format'];
+  const delsp = ct.params['delsp']?.toLowerCase() === 'yes';
 
   const path = parentPath ? `${parentPath}>${contentType}` : contentType;
 
@@ -203,6 +202,8 @@ function computeMeta(headerLines: Line[], depth: number, parentPath: string): Pa
     contentType,
     mainType,
     ...(charset ? { charset } : {}),
+    ...(format ? { format } : {}),
+    ...(delsp ? { delsp } : {}),
     encoding,
     ...(disposition ? { disposition } : {}),
     ...(filename ? { filename } : {}),

@@ -85,6 +85,10 @@ export interface PartMeta {
   /** Lowercased main type, e.g. "multipart", "text", "image". */
   mainType: string;
   charset?: string;
+  /** Content-Type `format` param (e.g. "flowed", RFC 3676). */
+  format?: string;
+  /** Content-Type `delsp` param === "yes". */
+  delsp?: boolean;
   /** Lowercased Content-Transfer-Encoding; defaults to "7bit". */
   encoding: string;
   disposition?: 'attachment' | 'inline';

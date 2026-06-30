@@ -3,7 +3,7 @@
 // Header parsing: unfolding (RFC 5322 §2.2.3), structured-field parameters (RFC 2045 +
 // RFC 2231 extended/`filename*`), RFC 2047 encoded-words, and a common-case address parser.
 
-import { decodeCharset } from './decode.js';
+import { base64ToBytes, decodeCharset } from './decode.js';
 import type { Address, Header } from './types.js';
 
 /** Parse a raw header block (already split from the body) into ordered, unfolded headers. */
@@ -160,7 +160,7 @@ export function decodeEncodedWords(input: string): string {
     const charset = m[1]!.split('*')[0]!; // strip an RFC 2231 `*language` suffix on the charset token
     const enc = m[2]!.toUpperCase();
     const data = m[3]!;
-    const bytes = enc === 'B' ? Uint8Array.from(Buffer.from(data, 'base64')) : decodeQWord(data);
+    const bytes = enc === 'B' ? base64ToBytes(data) : decodeQWord(data);
     out += decodeCharset(bytes, charset).text;
     lastEnd = m.index + m[0].length;
     prevWasWord = true;
@@ -193,8 +193,8 @@ function decodeQWord(s: string): Uint8Array {
 export function parseAddressList(raw: string | undefined): Address[] {
   if (!raw) return [];
   const out: Address[] = [];
-  for (const chunk of splitAddressCommas(raw)) {
-    const s = chunk.trim();
+  for (const chunk of splitAddressCommas(stripComments(raw))) {
+    const s = stripGroupLabel(chunk).trim();
     if (!s) continue;
     const angle = s.match(/^(.*)<([^>]*)>\s*$/);
     if (angle) {
@@ -235,5 +235,39 @@ function splitAddressCommas(s: string): string[] {
 
 function unquote(s: string): string {
   if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1).replace(/\\(.)/g, '$1');
+  return s;
+}
+
+/** Remove RFC 5322 comments `(...)` (depth-aware), but not inside quoted strings. */
+function stripComments(s: string): string {
+  let out = '';
+  let depth = 0;
+  let inQuote = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!;
+    if (ch === '"' && depth === 0) {
+      inQuote = !inQuote;
+      out += ch;
+    } else if (inQuote) {
+      out += ch;
+    } else if (ch === '(') {
+      depth++;
+    } else if (ch === ')') {
+      if (depth > 0) depth--;
+    } else if (depth === 0) {
+      out += ch;
+    }
+  }
+  return out;
+}
+
+/** Strip a group label (`Friends: a@x, b@y;`) — take the address part, drop the trailing `;`. */
+function stripGroupLabel(chunk: string): string {
+  const s = chunk.replace(/;\s*$/, '');
+  const at = s.search(/[@<]/);
+  const colon = s.indexOf(':');
+  if (colon !== -1 && (at === -1 || colon < at) && !s.slice(0, colon).includes('"')) {
+    return s.slice(colon + 1);
+  }
   return s;
 }

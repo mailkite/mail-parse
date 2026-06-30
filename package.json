@@ -1,0 +1,58 @@
+{
+  "name": "@mailkite/mail-parse",
+  "version": "0.0.0",
+  "description": "Streaming, memory-efficient, fully-typed MIME email parser with a declarative middleware seam.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./postal": {
+      "types": "./dist/adapters/postal-mime.d.ts",
+      "import": "./dist/adapters/postal-mime.js"
+    },
+    "./node": {
+      "types": "./dist/failure/reporters-node.d.ts",
+      "import": "./dist/failure/reporters-node.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mime",
+    "email",
+    "parser",
+    "streaming",
+    "rfc5322",
+    "rfc2045",
+    "mailkite"
+  ],
+  "homepage": "https://mailkite.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mailkite/mail-parse.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "postal-mime": "^2.7.5"
+  }
+}

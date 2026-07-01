@@ -1,6 +1,6 @@
 {
   "name": "@mailkite/mail-parse",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Streaming, memory-efficient, fully-typed MIME email parser with a declarative middleware seam.",
   "type": "module",
   "main": "dist/index.js",

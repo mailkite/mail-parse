@@ -5,6 +5,8 @@
 // for the design + decisions, and mime-parser-implementation.md for phase status.
 
 export { parse, type ParseOptions } from './parse.js';
+export { parseStream, type StreamHandlers } from './stream.js';
+export { createTransferDecoder, type StreamingDecoder } from './stream-decode.js';
 export { splitMime, type SplitHandlers } from './splitter.js';
 export {
   Registry,

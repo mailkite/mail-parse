@@ -17,6 +17,10 @@
     "./node": {
       "types": "./dist/failure/reporters-node.d.ts",
       "import": "./dist/failure/reporters-node.js"
+    },
+    "./hotloop": {
+      "types": "./dist/hotloop/index.d.ts",
+      "import": "./dist/hotloop/index.js"
     }
   },
   "files": [

@@ -61,7 +61,13 @@ class WasmTimeoutError extends Error {
   }
 }
 
-/** Race a promise against a wall-clock timeout (host-independent belt over the runtime's own fuel limit). */
+/**
+ * Race against a wall-clock timeout. NOTE: this is a soft guard for *preemptible* invokers only — it
+ * cannot interrupt a synchronous tight Wasm loop (the setTimeout can't fire until the call yields). Hard
+ * per-invocation budgets require the host runtime's own fuel/epoch interruption: Extism's native SDK on the
+ * Haraka VPS (Node) enforces them; the Extism JS SDK on Cloudflare Workers cannot, and falls back to the
+ * platform CPU-time limit (hot-loop-scoping.md §4.2). So run the enforcing host on the VPS.
+ */
 async function withTimeout<T>(p: T | Promise<T>, ms: number | undefined): Promise<T> {
   if (!ms) return await p;
   let timer: ReturnType<typeof setTimeout>;
